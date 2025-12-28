@@ -22,7 +22,6 @@ from homeassistant.const import (
     STATE_UNAVAILABLE,
     STATE_OK,
     STATE_PROBLEM,
-    STATE_LOCKED,
     STATE_OPEN,
     STATE_CLOSED,
 )

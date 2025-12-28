@@ -46,9 +46,7 @@ notify_engine:
           entity_id: input_boolean.text_notifications
           state: 'on'
     - service: >
-          {% if who == 'mirta' %}
-            notify.mobile_app_oppo
-          {% elif who == 'andrej' %}
+          {% if who == 'andrej' %}
             notify.mobile_app_pixel_7_pro
           {% elif who == 'luka' %}
             notify.mobile_app_luka_iphone

@@ -1,4 +1,5 @@
-name: "Electriq CD12PRO-LE dehumidifier"
+name: Dehumidifier
+# products: Electriq CD12PRO-LE
 entities:
   - entity: humidifier
     class: dehumidifier
@@ -121,3 +122,11 @@ entities:
       - id: 19
         type: bitfield
         name: fault_code
+  - entity: lock
+    translation_key: child_lock
+    category: config
+    dps:
+      - id: 16
+        type: boolean
+        name: lock
+        optional: true

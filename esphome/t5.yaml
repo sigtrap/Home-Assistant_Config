@@ -295,10 +295,6 @@ text_sensor:
     entity_id: device_tracker.oppo
     id: mirta_location
     internal: true
-  - platform: homeassistant
-    entity_id: sensor.mirta_distance
-    id: mirta_distance
-    internal: true
     on_value: # Actions to perform once data for the last sensor has been received
       then:
         - script.execute: all_data_received  

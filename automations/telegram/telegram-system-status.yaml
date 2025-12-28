@@ -29,9 +29,9 @@ action:
 
       *HDD Temp*:   {{ states('sensor.ebroz920_drive_1_temperature') }} °C
 
-      *Network DL*:   {{ states('sensor.ebroz920_network_down') }} kB/s
+      *Network DL*:   {{ states('sensor.ebroz920_download_throughput') }} kB/s
 
-      *Network UL*:   {{ states('sensor.ebroz920_network_up') }} kB/s
+      *Network UL*:   {{ states('sensor.ebroz920_upload_throughput') }} kB/s
 
 
     data:

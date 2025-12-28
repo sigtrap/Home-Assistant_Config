@@ -1,10 +1,3 @@
-mirta:
-  hide_if_away: false
-  icon:
-  mac: '250532'
-  name: Mirta
-  picture:
-  track: true
 
 andrej:
   hide_if_away: false
@@ -36,14 +29,6 @@ google_maps_xxxxxxxxxxxxxxxxxxx:
   mac:
   name: Luka
   picture: https://lh3.googleusercontent.com/a-/xxxxxxxxxxxxxxxxxxxxxxxxxxxx
-  track: true
-
-google_maps_xxxxxxxxxxxxxxxxxxxx:
-  hide_if_away: false
-  icon: mdi:cellphone-android
-  mac:
-  name: Mirta
-  picture: https://lh6.googleusercontent.com/-xxx-x/xxx/xxx/xxx-x/mo/photo.jpg
   track: true
 
 google_maps_xxxxxxxxxxxxxxxxxxxxx:

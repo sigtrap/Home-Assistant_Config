@@ -5,6 +5,7 @@ import logging
 import os.path
 import uuid
 from datetime import timedelta
+from typing import Any
 
 import async_timeout
 from homeassistant.config_entries import ConfigEntry
@@ -67,17 +68,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     custom_name = get_user_name(hass, entry)
 
     url = entry.data.get(CONF_URL)
-    port = entry.data.get(CONF_PORT)
-    tls = entry.data.get(CONF_TLS)
-    api_key = entry.data.get(CONF_API_KEY)
+    port = entry.data.get(CONF_PORT, 7125)
+    tls = entry.data.get(CONF_TLS, False)
+    api_key = entry.data.get(CONF_API_KEY, "")
     printer_name = (
         entry.data.get(CONF_PRINTER_NAME) if custom_name is None else custom_name
     )
 
-    if entry.options.get(CONF_OPTION_POLLING_RATE) is not None:
-        SCAN_INTERVAL = timedelta(seconds=entry.options.get(CONF_OPTION_POLLING_RATE))
-    else:
-        SCAN_INTERVAL = timedelta(seconds=30)
+    SCAN_INTERVAL = timedelta(seconds=entry.options.get(CONF_OPTION_POLLING_RATE, 30))
 
     api = MoonrakerApiClient(
         url,
@@ -93,7 +91,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
             printer_info = await api.client.call_method("printer.info")
             _LOGGER.debug(printer_info)
 
-            if printer_name == "":
+            if printer_name == "" or printer_name is None:
                 api_device_name = printer_info[HOSTNAME]
             else:
                 api_device_name = printer_name
@@ -124,15 +122,75 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     async def send_gcode_service(service_call):
         """Handle the service call to send g-code."""
         gcode = service_call.data["gcode"]
-        device_id = service_call.data["device_id"][0]
+        raw_device_ids = service_call.data["device_id"]
         dev_reg = dr.async_get(hass)
 
-        device = dev_reg.async_get(device_id)
-        entry_id = device.primary_config_entry
-        await hass.data[DOMAIN][entry_id].async_send_data(
-            METHODS.PRINTER_GCODE_SCRIPT,
-            {"script": gcode},
-        )
+        if isinstance(gcode, list):
+            script = "\n".join(line for line in gcode if line)
+        else:
+            script = str(gcode)
+
+        if not script.strip():
+            _LOGGER.warning("Received empty G-code payload, skipping send")
+            return
+
+        if isinstance(raw_device_ids, str):
+            device_ids = [raw_device_ids]
+        else:
+            device_ids = list(raw_device_ids)
+
+        processed_entries: set[str] = set()
+
+        domain_entries = hass.data.get(DOMAIN, {})
+
+        for device_id in device_ids:
+            device = dev_reg.async_get(device_id)
+            entry_ids: set[str] = set()
+
+            if device is None:
+                if device_id in domain_entries:
+                    entry_ids.add(device_id)
+                else:
+                    _LOGGER.warning("Unknown Moonraker device_id %s", device_id)
+                    continue
+            else:
+                if getattr(device, "config_entries", None):
+                    entry_ids.update(device.config_entries)
+                if device.primary_config_entry:
+                    entry_ids.add(device.primary_config_entry)
+                if not entry_ids:
+                    for domain, identifier in device.identifiers:
+                        if domain == DOMAIN:
+                            entry_ids.add(identifier)
+
+            if not entry_ids:
+                _LOGGER.warning(
+                    "Moonraker device %s has no associated config entries", device_id
+                )
+                continue
+
+            for entry_id in entry_ids:
+                if entry_id not in hass.data.get(DOMAIN, {}):
+                    _LOGGER.warning(
+                        "Moonraker device %s entry %s not loaded",
+                        device_id,
+                        entry_id,
+                    )
+                    continue
+
+                if entry_id in processed_entries:
+                    continue
+
+                processed_entries.add(entry_id)
+
+                _LOGGER.debug(
+                    "Sending G-code via entry %s for device %s", entry_id, device_id
+                )
+
+                await hass.data[DOMAIN][entry_id].async_send_data(
+                    METHODS.PRINTER_GCODE_SCRIPT,
+                    {"script": script},
+                )
 
     # Register the new service
     hass.services.async_register(DOMAIN, "send_gcode", send_gcode_service)
@@ -187,7 +245,13 @@ class MoonrakerDataUpdateCoordinator(DataUpdateCoordinator):
         self.query_obj = {OBJ: {}}
         self.load_sensor_data(SENSORS)
 
-        super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=SCAN_INTERVAL)
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=DOMAIN,
+            update_interval=SCAN_INTERVAL,
+            config_entry=config_entry,
+        )
 
     async def _async_update_data(self):
         """Update data via library."""
@@ -219,6 +283,8 @@ class MoonrakerDataUpdateCoordinator(DataUpdateCoordinator):
             "layer_height": None,
             "object_height": None,
             "first_layer_height": None,
+            "gcode_start_byte": None,
+            "gcode_end_byte": None,
         }
         if gcode_filename is None or gcode_filename == "":
             return return_gcode
@@ -236,6 +302,8 @@ class MoonrakerDataUpdateCoordinator(DataUpdateCoordinator):
         return_gcode["layer_count"] = gcode.get("layer_count", 0)
         return_gcode["layer_height"] = gcode.get("layer_height", 0)
         return_gcode["first_layer_height"] = gcode.get("first_layer_height", 0)
+        return_gcode["gcode_start_byte"] = gcode.get("gcode_start_byte")
+        return_gcode["gcode_end_byte"] = gcode.get("gcode_end_byte")
 
         try:
             # Keep last since this can fail but, we still want the other data
@@ -289,13 +357,16 @@ class MoonrakerDataUpdateCoordinator(DataUpdateCoordinator):
             raise UpdateFailed() from exception
 
     async def async_fetch_data(
-        self, query_path: METHODS, query_obj: dict[str:any] = None, quiet: bool = False
+        self,
+        query_path: METHODS,
+        query_obj: dict[str, Any] | None = None,
+        quiet: bool = False,
     ):
         """Fetch data from moonraker."""
         return await self._async_fetch_data(query_path, query_obj, quiet=quiet)
 
     async def async_send_data(
-        self, query_path: METHODS, query_obj: dict[str:any] = None
+        self, query_path: METHODS, query_obj: dict[str, Any] | None = None
     ):
         """Send data to moonraker."""
         return await self._async_send_data(query_path, query_obj)

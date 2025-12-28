@@ -15,7 +15,7 @@ action:
 - data:
     data:
       keyboard:
-      - /andrej, /luka, /mirta
+      - /andrej, /luka, /zita
       - /pcon, /pcoff, /pcreboot
       - /ping, /camera
       - /start, /cp

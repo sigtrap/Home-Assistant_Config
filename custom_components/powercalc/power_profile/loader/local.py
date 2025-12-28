@@ -104,18 +104,18 @@ class LocalLoader(Loader):
         model_json = lib_model.json_data
         return model_json, model_path
 
-    async def find_model(self, manufacturer: str, search: set[str]) -> set[str]:
+    async def find_model(self, manufacturer: str, search: set[str]) -> list[str]:
         """Find a model for a given manufacturer. Also must check aliases."""
         _manufacturer = manufacturer.lower()
 
         models = self._manufacturer_model_listing.get(_manufacturer)
         if not models:
-            return set()
+            return []
 
         search_lower = {phrase.lower() for phrase in search}
 
         profile = next((models[model] for model in models if model.lower() in search_lower), None)
-        return {profile.model} if profile else set()
+        return [profile.model] if profile else []
 
     def _load_custom_library(self) -> None:
         """Loading custom models and aliases from file system.
@@ -143,7 +143,7 @@ class LocalLoader(Loader):
 
                 model_json_path = os.path.join(model_path, "model.json")
                 if not os.path.exists(model_json_path):
-                    _LOGGER.error("model.json should exist in %s!", model_path)
+                    _LOGGER.warning("model.json should exist in %s!", model_path)
                     continue
 
                 model_json = self._load_json(model_json_path)

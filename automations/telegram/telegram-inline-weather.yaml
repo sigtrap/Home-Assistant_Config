@@ -24,11 +24,11 @@ action:
 
       ------------------------------------------------
 
-      *Temperature*:   {{ state_attr('weather.accuweather', 'temperature') }} °C
+      *Temperature*:   {{ state_attr('weather.forecast_home', 'temperature') }} °C
 
-      *Humidity*:      {{ state_attr('weather.accuweather', 'humidity') }} %
+      *Humidity*:      {{ state_attr('weather.forecast_home', 'humidity') }} %
 
-      *Pressure*:      {{ state_attr('weather.accuweather', 'pressure') }} hPa
+      *Pressure*:      {{ state_attr('weather.forecast_home', 'pressure') }} hPa
 
     data:
       inline_keyboard:

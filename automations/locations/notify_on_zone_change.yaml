@@ -13,7 +13,7 @@ trigger:
       - person.andrej
       - person.zita
       - person.luka
-      - person.mirta
+
     to: ~
     for:
       minutes: 1

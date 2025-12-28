@@ -23,7 +23,6 @@ almostmidnightspeech:
                 "Wind down, midnight is almost here",
                 "Get ready to go to bed. Dimming lights",
                 "Hey, look at the time, it's late",
-                "Did you take dog out?",
                 ] | random }}
             extra:
               volume: 0.4

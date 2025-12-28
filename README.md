@@ -368,6 +368,5 @@ Most of the missing files now have sample version. This is edited version with "
   - google_calendars.yaml - contains private information - added SAMPLE
   - telegram_gps_response_andrej.yaml - contains identifiers - added SAMPLE
   - telegram_gps_response_luka.yaml - contains identifiers
-  - telegram_gps_response_mirta.yaml - contains identifiers
 
 Also missing are certificates, json files, cookies,...
